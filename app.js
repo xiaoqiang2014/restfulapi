@@ -11,7 +11,7 @@ var reserveRouter = require('./routes/reserve');
 
 var app = express();
 var mongoose = require('mongoose');
-mongoose.connect("mongodb://localhost/demo");
+mongoose.connect("mongodb://mongo/demo");
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));

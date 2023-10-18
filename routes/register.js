@@ -8,7 +8,7 @@ const bcrypt = require('bcrypt');
 const Users = require('../models/users');
 
 // Register Guest User
-router.post('/register/guest', async (req, res) => {
+router.post('/guest', async (req, res) => {
     try {
         const { name, email, password } = req.body;
 
@@ -40,7 +40,7 @@ router.post('/register/guest', async (req, res) => {
 });
 
 // Register Employee User
-router.post('/register/employee', async (req, res) => {
+router.post('/employee', async (req, res) => {
     try {
         const { name, email, password } = req.body;
 
@@ -72,7 +72,7 @@ router.post('/register/employee', async (req, res) => {
 });
 
 // Login Guest User
-router.post('/login/guest', async (req, res) => {
+router.post('/guest/login', async (req, res) => {
     try {
         const { email, password } = req.body;
 
@@ -97,7 +97,7 @@ router.post('/login/guest', async (req, res) => {
 });
 
 // Login Employee User
-router.post('/login/employee', async (req, res) => {
+router.post('/employee/login', async (req, res) => {
     try {
         const { email, password } = req.body;
 
