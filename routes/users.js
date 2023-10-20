@@ -40,7 +40,7 @@ router.post('/register', async (req, res) => {
     }
 });
 
-// Login Guest User
+// Login User
 router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;

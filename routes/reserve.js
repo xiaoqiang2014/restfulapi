@@ -6,6 +6,7 @@ const express = require('express');
 const router = express.Router();
 const Reservations = require('../models/reservations');
 const { checkPermission } = require('../components/common');
+const tools = require('../components/common');
 
 // Guest Make a Reservation
 router.post('/reservations', async (req, res) => {
@@ -15,23 +16,25 @@ router.post('/reservations', async (req, res) => {
             guestContactInfo,
             expectedArrivalTime,
             reservedTableSize,
-            status,
+            reservationDate,
             token
         } = req.body;
 
         // Check user permission using the provided token
-        const { data, db } = await checkPermission(token);
+        //const { data, db } = await checkPermission(token);
 
-        if (data.error) {
-            return res.status(data.code).json({ error: data.message });
-        }
+
+        // if (data.error) {
+        //     return res.status(data.code).json({ error: data.message });
+        // }
 
         const newReservation = new Reservations({
-            guestName,
-            guestContactInfo,
-            expectedArrivalTime,
-            reservedTableSize,
-            status
+            guestName: guestName, 
+            contactInfo: guestContactInfo, 
+            expectedArrivalTime: expectedArrivalTime,
+            tableSize: reservedTableSize, 
+            reservationDate: reservationDate, 
+            status: 'confirmed'
         });
 
         const savedReservation = await newReservation.save();
@@ -40,21 +43,24 @@ router.post('/reservations', async (req, res) => {
     } catch (error) {
         console.log(error);
         res.status(500).json({ error: 'An error occurred' });
-    } finally {
-        if (db) {
-            db.close();
-        }
     }
 });
 
 //Guest view his/her Reservation
 router.get('/reservations',  async (req, res) => {
     try {
-        const guestEmail = req.userData.email;
+        const authorizationHeader = req.headers['authorization'];
+        if (!authorizationHeader) {
+           return res.status(401).json({ error: 'Token is not provided' });
+        }
+
+        // Extract the token from the "Bearer <token>" format
+        const token = authorizationHeader.split(' ')[1];
+        const decodedToken = tools.jwtDecode(token);
+        const guestEmail = decodedToken.email;
 
         // Retrieve reservations for the guest by their email
         const reservations = await Reservations.find({ guestEmail });
-
         res.json(reservations);
     } catch (error) {
         console.log(error);
@@ -63,40 +69,22 @@ router.get('/reservations',  async (req, res) => {
 });
 
 
-// Guest Update Reservation
-router.put('/reservations/:reservationId',  async (req, res) => {
-    try {
-        const { reservationId } = req.params;
-        const { guestName, guestContactInfo, expectedArrivalTime, reservedTableSize } = req.body;
-        const guestEmail = req.userData.email;
-
-        // Check if the reservation exists and belongs to the guest
-        const reservation = await Reservations.findOne({ _id: reservationId, guestEmail });
-
-        if (!reservation) {
-            return res.status(404).json({ error: 'Reservation not found' });
-        }
-
-        // Update the reservation with the new information
-        reservation.guestName = guestName;
-        reservation.guestContactInfo = guestContactInfo;
-        reservation.expectedArrivalTime = expectedArrivalTime;
-        reservation.reservedTableSize = reservedTableSize;
-
-        const updatedReservation = await reservation.save();
-
-        res.json(updatedReservation);
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({ error: 'An error occurred' });
-    }
-});
 
 // Get All Guest Reservations with Paging
-router.get('/reservations',  async (req, res) => {
+router.get('/allreservations',  async (req, res) => {
     try {
+
+        const authorizationHeader = req.headers['authorization'];
+        if (!authorizationHeader) {
+            return res.status(401).json({ error: 'Token is not provided' });
+        }
+
+        // Extract the token from the "Bearer <token>" format
+        const token = authorizationHeader.split(' ')[1];
+        const decodedToken = tools.jwtDecode(token);
+        const userRole = decodedToken.role;
         // Check if the user is an employee
-        if (req.userData.role !== 'employee') {
+        if (userRole !== 'employee') {
             return res.status(403).json({ error: 'Access denied' });
         }
 
@@ -117,10 +105,14 @@ router.get('/reservations',  async (req, res) => {
         console.log(error);
         res.status(500).json({ error: 'An error occurred' });
     }
+
+       
+            
 });
 
+
 // Get Guest Reservations with Search
-router.get('/reservations', async (req, res) => {
+router.get('/searchreservations', async (req, res) => {
     try {
         // Check if the user is an employee
         if (req.userData.role !== 'employee') {
@@ -161,16 +153,20 @@ router.get('/reservations', async (req, res) => {
     }
 });
 
-// Update User Reservation
-router.put('/reservations/:reservationId',  async (req, res) => {
+// User Cancel own Reservation
+router.delete('/reservations/:reservationId', async (req, res) => {
     try {
-        // Check if the user is an employee
-        if (req.userData.role !== 'employee') {
-            return res.status(403).json({ error: 'Access denied' });
+        const authorizationHeader = req.headers['authorization'];
+        if (!authorizationHeader) {
+            return res.status(401).json({ error: 'Token is not provided' });
         }
 
+        // Extract the token from the "Bearer <token>" format
+        const token = authorizationHeader.split(' ')[1];
+        const decodedToken = tools.jwtDecode(token);
+        const guestEmail = decodedToken.email;
+
         const { reservationId } = req.params;
-        const { status } = req.body;
 
         // Find the reservation by ID
         const reservation = await Reservation.findById(reservationId);
@@ -180,13 +176,15 @@ router.put('/reservations/:reservationId',  async (req, res) => {
             return res.status(404).json({ error: 'Reservation not found' });
         }
 
-        // Update the reservation status
-        reservation.status = status;
+        // Check if the reservation belongs to the user
+        if (reservation.guestEmail !== guestEmail) {
+            return res.status(403).json({ error: 'Permission denied' });
+        }
 
-        // Save the updated reservation
-        await reservation.save();
+        // Remove the reservation
+        await reservation.remove();
 
-        res.json(reservation);
+        res.json({ message: 'Reservation removed successfully' });
     } catch (error) {
         console.log(error);
         res.status(500).json({ error: 'An error occurred' });

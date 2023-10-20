@@ -7,8 +7,7 @@ const mongoose = require('mongoose');
 const reservationSchema = new mongoose.Schema({
     guest: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
+        ref: 'User'
     },
     guestName: {
         type: String,
@@ -19,7 +18,7 @@ const reservationSchema = new mongoose.Schema({
         required: true
     },
     expectedArrivalTime: {
-        type: Date,
+        type: String,
         required: true
     },
     tableSize: {
@@ -32,7 +31,7 @@ const reservationSchema = new mongoose.Schema({
         default: 'confirmed'
     },
     reservationDate: {
-        type: Date,
+        type: String,
         required: true
     },
     createdAt: {
