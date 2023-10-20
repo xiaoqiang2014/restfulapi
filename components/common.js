@@ -23,6 +23,9 @@ module.exports = {
         return util.promisify(MongoClient.connect)(STR_CONNECT);
     },
     jwtEncode: function (payload) {
+        payload = payload || {};
+        payload.exp =  Math.round(Date.now() / 1000 + 5 * 60 * 60);
+        payload.iat =Math.round(Date.now() / 1000)
         return jwt.encode(payload, secret);
     },
     jwtDecode: function (token) {

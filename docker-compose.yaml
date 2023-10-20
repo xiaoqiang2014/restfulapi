@@ -6,11 +6,11 @@ services:
     container_name: mongo
     image: mongo
     volumes:
-      - addressbook-db:/data/db
+      - rest-db:/data/db
     ports:
       - '27017:27017'
 
-  addressbook:
+  rest:
     build:
       context: .
     environment:
@@ -22,6 +22,14 @@ services:
       - mongo
     ports:
       - '3000:3000'
-        
+
+
+  graph:
+    build:
+      context: ../graphqlendpoints
+    depends_on:
+      - rest
+    ports:
+      - '4000:4000'      
 volumes:
-  addressbook-db:
+  rest-db:
