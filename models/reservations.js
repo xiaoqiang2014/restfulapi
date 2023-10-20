@@ -34,6 +34,10 @@ const reservationSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    orderpeopleemail:{
+        type:String,
+        required: true
+    },
     createdAt: {
         type: Date,
         default: Date.now

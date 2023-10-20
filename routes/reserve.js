@@ -14,9 +14,9 @@ router.post('/reservations', async (req, res) => {
         const {
             guestName,
             guestContactInfo,
-            expectedArrivalTime,
-            reservedTableSize,
+            arrivalTime,
             reservationDate,
+            tableSize,
             token
         } = req.body;
 
@@ -27,13 +27,15 @@ router.post('/reservations', async (req, res) => {
         // if (data.error) {
         //     return res.status(data.code).json({ error: data.message });
         // }
-
+        const decodedToken = tools.jwtDecode(token);
+        orderpeopleemail = decodedToken.email;
         const newReservation = new Reservations({
             guestName: guestName, 
             contactInfo: guestContactInfo, 
-            expectedArrivalTime: expectedArrivalTime,
-            tableSize: reservedTableSize, 
+            expectedArrivalTime: arrivalTime,
+            tableSize: tableSize, 
             reservationDate: reservationDate, 
+            orderpeopleemail: orderpeopleemail,
             status: 'confirmed'
         });
 
@@ -60,7 +62,7 @@ router.get('/reservations',  async (req, res) => {
         const guestEmail = decodedToken.email;
 
         // Retrieve reservations for the guest by their email
-        const reservations = await Reservations.find({ guestEmail });
+        const reservations = await Reservations.find({orderpeopleemail: guestEmail});
         res.json(reservations);
     } catch (error) {
         console.log(error);
@@ -169,20 +171,20 @@ router.delete('/reservations/:reservationId', async (req, res) => {
         const { reservationId } = req.params;
 
         // Find the reservation by ID
-        const reservation = await Reservation.findById(reservationId);
+        const reservation = await Reservations.findById(reservationId);
 
         // Check if the reservation exists
         if (!reservation) {
             return res.status(404).json({ error: 'Reservation not found' });
         }
 
-        // Check if the reservation belongs to the user
-        if (reservation.guestEmail !== guestEmail) {
-            return res.status(403).json({ error: 'Permission denied' });
-        }
+        // Check if the reservation exists
+       if (!reservation) {
+           return res.status(404).json({ error: 'Reservation not found' });
+       }
 
-        // Remove the reservation
-        await reservation.remove();
+// Remove the reservation using the model's remove method
+await Reservations.findByIdAndRemove(reservationId);
 
         res.json({ message: 'Reservation removed successfully' });
     } catch (error) {
